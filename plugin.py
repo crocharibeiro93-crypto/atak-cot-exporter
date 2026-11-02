@@ -26,7 +26,7 @@ from qgis.core import (
     QgsExpressionContextUtils, QgsSymbolLayerUtils
 )
 
-VERSION = "2.0.1"
+VERSION = "2.0.2"
 SETTINGS_ROOT = "ATAKCoTExporterV2/"
 
 _WARNINGS_LOGGED = set()
@@ -42,7 +42,7 @@ def _log_optional(exc):
         QgsMessageLog.logMessage(
             message,
             "ATAK CoT Exporter",
-            Qgis.Warning
+            Qgis.MessageLevel.Warning
         )
 
 
@@ -112,7 +112,7 @@ def style_for_symbol(symbol, geometry_type, context):
         value = argb(symbol.color(), opacity)
         result["point"] = value
         result["stroke"] = value
-        if geometry_type == QgsWkbTypes.PolygonGeometry:
+        if geometry_type == QgsWkbTypes.GeometryType.PolygonGeometry:
             result["fill"] = value
     except (AttributeError, TypeError, ValueError, RuntimeError) as exc:
         _log_optional(exc)
@@ -127,9 +127,9 @@ def style_for_symbol(symbol, geometry_type, context):
         if color.isValid():
             value = argb(color, opacity)
             result["point"] = value
-            if geometry_type == QgsWkbTypes.LineGeometry:
+            if geometry_type == QgsWkbTypes.GeometryType.LineGeometry:
                 result["stroke"] = value
-            elif geometry_type == QgsWkbTypes.PolygonGeometry:
+            elif geometry_type == QgsWkbTypes.GeometryType.PolygonGeometry:
                 result["fill"] = value
     except (AttributeError, TypeError, ValueError, RuntimeError) as exc:
         _log_optional(exc)
@@ -141,8 +141,8 @@ def style_for_symbol(symbol, geometry_type, context):
     except (AttributeError, TypeError, ValueError, RuntimeError) as exc:
         _log_optional(exc)
 
-    if geometry_type != QgsWkbTypes.PointGeometry:
-        if geometry_type == QgsWkbTypes.LineGeometry:
+    if geometry_type != QgsWkbTypes.GeometryType.PointGeometry:
+        if geometry_type == QgsWkbTypes.GeometryType.LineGeometry:
             width_attr = "width"
             unit_attr = "widthUnit"
             style_attr = "penStyle"
@@ -163,11 +163,11 @@ def style_for_symbol(symbol, geometry_type, context):
 
         try:
             pen = getattr(symbol_layer, style_attr)()
-            if pen == Qt.DotLine:
+            if pen == Qt.PenStyle.DotLine:
                 result["line_style"] = "dotted"
             elif pen in (
-                Qt.DashLine, Qt.DashDotLine,
-                Qt.DashDotDotLine
+                Qt.PenStyle.DashLine, Qt.PenStyle.DashDotLine,
+                Qt.PenStyle.DashDotDotLine
             ):
                 result["line_style"] = "dashed"
         except (AttributeError, TypeError, ValueError, RuntimeError) as exc:
@@ -185,7 +185,7 @@ def symbol_png(symbol):
             symbol, QSize(64, 64)
         )
         buffer = QBuffer()
-        buffer.open(QIODevice.WriteOnly)
+        buffer.open(QIODevice.OpenModeFlag.WriteOnly)
         success = pixmap.save(buffer, "PNG")
         data = bytes(buffer.data())
         buffer.close()
@@ -307,7 +307,7 @@ def decompose_holes(rings):
 def geometry_parts(geometry, split_lines, fix_holes):
     kind = QgsWkbTypes.geometryType(geometry.wkbType())
 
-    if kind == QgsWkbTypes.PointGeometry:
+    if kind == QgsWkbTypes.GeometryType.PointGeometry:
         points = (
             geometry.asMultiPoint()
             if geometry.isMultipart()
@@ -315,7 +315,7 @@ def geometry_parts(geometry, split_lines, fix_holes):
         )
         return [("point", [p]) for p in points], 0, 0
 
-    if kind == QgsWkbTypes.LineGeometry:
+    if kind == QgsWkbTypes.GeometryType.LineGeometry:
         lines = (
             geometry.asMultiPolyline()
             if geometry.isMultipart()
@@ -341,7 +341,7 @@ def geometry_parts(geometry, split_lines, fix_holes):
 
         return [("line", joined)], disconnected, 0
 
-    if kind == QgsWkbTypes.PolygonGeometry:
+    if kind == QgsWkbTypes.GeometryType.PolygonGeometry:
         result = []
         hole_count = 0
 
@@ -615,7 +615,7 @@ def export_layer(
                 stats["skipped"] += 1
                 continue
 
-            if config["icons"] and geom_type == QgsWkbTypes.PointGeometry:
+            if config["icons"] and geom_type == QgsWkbTypes.GeometryType.PointGeometry:
                 try:
                     symbol_desc = symbol.dump() if symbol else ""
                     symbol_key = hashlib.sha256(
@@ -950,7 +950,7 @@ class ATAKPlugin:
             "Exportar", "Label / callsign", "Geometria"
         ])
         table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.Stretch
+            QHeaderView.ResizeMode.Stretch
         )
 
         try:
@@ -972,7 +972,7 @@ class ATAKPlugin:
         for row, layer in enumerate(layers):
             item = QTableWidgetItem(layer.name())
             item.setFlags(
-                item.flags() | Qt.ItemIsUserCheckable
+                item.flags() | Qt.ItemFlag.ItemIsUserCheckable
             )
 
             default_checked = (
@@ -984,7 +984,7 @@ class ATAKPlugin:
             )
 
             item.setCheckState(
-                Qt.Checked if default_checked else Qt.Unchecked
+                Qt.CheckState.Checked if default_checked else Qt.CheckState.Unchecked
             )
             table.setItem(row, 0, item)
 
@@ -1017,13 +1017,13 @@ class ATAKPlugin:
 
         all_button.clicked.connect(
             lambda: [
-                table.item(r, 0).setCheckState(Qt.Checked)
+                table.item(r, 0).setCheckState(Qt.CheckState.Checked)
                 for r in range(table.rowCount())
             ]
         )
         none_button.clicked.connect(
             lambda: [
-                table.item(r, 0).setCheckState(Qt.Unchecked)
+                table.item(r, 0).setCheckState(Qt.CheckState.Unchecked)
                 for r in range(table.rowCount())
             ]
         )
@@ -1142,13 +1142,13 @@ class ATAKPlugin:
         mode_changed()
 
         buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
 
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         chosen = []
@@ -1158,7 +1158,7 @@ class ATAKPlugin:
             field = field_boxes[row].currentData()
             labels_saved[layer.name()] = field
 
-            if table.item(row, 0).checkState() == Qt.Checked:
+            if table.item(row, 0).checkState() == Qt.CheckState.Checked:
                 chosen.append((layer, field))
 
         if not chosen:
@@ -1243,7 +1243,7 @@ class ATAKPlugin:
             0, max(1, total),
             self.iface.mainWindow()
         )
-        progress.setWindowModality(Qt.WindowModal)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         progress.show()
 
@@ -1277,10 +1277,10 @@ class ATAKPlugin:
                     "Queres substituí-los? O ZIP original "
                     "será preservado."
                 ).format(count),
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
             )
-            return answer == QMessageBox.Yes
+            return answer == QMessageBox.StandardButton.Yes
 
         reports = []
 

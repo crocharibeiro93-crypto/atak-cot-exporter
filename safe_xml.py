@@ -72,8 +72,8 @@ def fromstring(data):
 
         # Rejeitar DTD e entidades declaradas
         if token in (
-            QXmlStreamReader.DTD,
-            QXmlStreamReader.EntityReference
+            QXmlStreamReader.TokenType.DTD,
+            QXmlStreamReader.TokenType.EntityReference
         ):
             raise ValueError(
                 "DTD ou entidade XML não permitida."
