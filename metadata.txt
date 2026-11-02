@@ -1,0 +1,16 @@
+[general]
+name=ATAK CoT Exporter
+description=Export QGIS vector layers to ATAK CoT Data Packages
+version=2.0.0
+qgisMinimumVersion=3.16
+author=Carlos Ribeiro
+email=carlos.ribeiro93@hotmail.com
+category=Vector
+icon=icon.png
+homepage=https://github.com/crocharibeiro93-crypto/atak-cot-exporter
+repository=https://github.com/crocharibeiro93-crypto/atak-cot-exporter
+tracker=https://github.com/crocharibeiro93-crypto/atak-cot-exporter/issues
+tags=atak,cot,mission package,geojson,export
+experimental=True
+deprecated=False
+about=Export multiple QGIS vector layers as ATAK CoT packages, retain compatible symbology, and update existing packages.
