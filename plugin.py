@@ -26,7 +26,7 @@ from qgis.core import (
     QgsExpressionContextUtils, QgsSymbolLayerUtils
 )
 
-VERSION = "2.0.2"
+VERSION = "2.1.1"
 SETTINGS_ROOT = "ATAKCoTExporterV2/"
 
 _WARNINGS_LOGGED = set()
@@ -904,12 +904,36 @@ class ATAKPlugin:
         )
         self.iface.addToolBarIcon(self.action)
 
+        self.raster_action = QAction(
+            "Exportar raster para MBTiles",
+            self.iface.mainWindow()
+        )
+
+        self.raster_action.triggered.connect(
+            self.export_mbtiles
+        )
+
+        self.iface.addPluginToMenu(
+            "ATAK CoT",
+            self.raster_action
+        )
+
+
     def unload(self):
+        if getattr(self, "raster_action", None):
+            self.iface.removePluginMenu(
+                "ATAK CoT", self.raster_action
+            )
+
         if self.action:
             self.iface.removePluginMenu(
                 "ATAK CoT", self.action
             )
             self.iface.removeToolBarIcon(self.action)
+
+    def export_mbtiles(self):
+        from .raster_mbtiles import show_dialog
+        show_dialog(self.iface)
 
     def run(self):
         layers = sorted(
